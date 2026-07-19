@@ -46,8 +46,10 @@ export default function Index() {
         ) : (
           <View>
             <SearchBar
-              onPress={() => router.push("/search")}
               placeholder="Search for movies, TV shows, and more"
+              onPress={() => router.push("/search")}
+              value=""
+              onChangeText={() => {}}
             />
           </View>
         )}
