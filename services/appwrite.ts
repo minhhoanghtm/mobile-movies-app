@@ -16,9 +16,9 @@ const database = new Databases(client);
 export const updateSearchCount = async (query: string, movie: Movie) => {
   try {
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
-      Query.equal("searchTERM", query),
+      Query.equal("searchTerm", query),
     ]);
-    //check if a record of that search has already been stored
+    //check if a recoard of thet search has already been stored
     if (result.documents.length > 0) {
       const existingMovie = result.documents[0];
 
@@ -32,17 +32,19 @@ export const updateSearchCount = async (query: string, movie: Movie) => {
       );
     } else {
       await database.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
-        searchTERM: query,
-        movie_id: movie?.id || 0,
+        searchTerm: query,
+        movie_id: movie?.id || null,
         count: 1,
-        poster_url: movie?.poster_path
-          ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-          : "https://placehold.co/500x750.png",
-        title: movie?.title || "Unknown",
+        title: movie?.title || null,
+        poster_path:
+          `https://image.tmdb.org/t/p/w500${movie?.poster_path}` || null,
       });
     }
   } catch (error) {
     console.error("Error updating search count:", error);
     throw error;
   }
+  //if a document is found increment the searchCount field
+  //if no document is found c
+  // crate a new document in Appwrite database -> 1
 };
