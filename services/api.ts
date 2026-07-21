@@ -1,5 +1,5 @@
 export const TMDB_CONFIG = {
-  BASE_URL: "https://api.themoviedb.org/3",
+  BASE_URL: process.env.EXPO_PUBLIC_MOVIE_API_BASE_URL || "https://api.tmdb.org/3",
   API_KEY: process.env.EXPO_PUBLIC_MOVIE_API_KEY,
   headers: {
     accept: "application/json",
@@ -7,48 +7,55 @@ export const TMDB_CONFIG = {
   },
 };
 
-export const fetchMovies = async ({
-  query,
-}: {
-  query: string;
-}): Promise<Movie[]> => {
+const assertTMDBToken = () => {
+  if (!TMDB_CONFIG.API_KEY) {
+    throw new Error(
+      "Missing EXPO_PUBLIC_MOVIE_API_KEY. Restart Expo after updating .env.",
+    );
+  }
+};
+
+const tmdbFetch = async (endpoint: string) => {
+  try {
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: TMDB_CONFIG.headers,
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(
+        `TMDB request failed (${response.status}): ${body || response.statusText}`,
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error instanceof TypeError) {
+      const domain = TMDB_CONFIG.BASE_URL.replace(/^https?:\/\//, "").split("/")[0];
+      throw new Error(
+        `Network request failed while calling TMDB. Check device internet access or whether ${domain} is reachable from this network.`,
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const fetchMovies = async ({ query }: { query: string }) => {
+  assertTMDBToken();
+
   const endpoint = query
     ? `${TMDB_CONFIG.BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
     : `${TMDB_CONFIG.BASE_URL}/discover/movie?sort_by=popularity.desc`;
 
-  const response = await fetch(endpoint, {
-    method: "GET",
-    headers: TMDB_CONFIG.headers,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch movies: ${response.statusText}`);
-  }
-
-  const data = await response.json();
+  const data = await tmdbFetch(endpoint);
   return data.results;
 };
 
 export const fetchMovieDetails = async (
   movieId: string,
 ): Promise<MovieDetails> => {
-  try {
-    const response = await fetch(
-      `${TMDB_CONFIG.BASE_URL}/movie/${movieId}?api_key=${TMDB_CONFIG.API_KEY}`,
-      {
-        method: "GET",
-        headers: TMDB_CONFIG.headers,
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch movie details: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching movie details:", error);
-    throw error;
-  }
+  assertTMDBToken();
+  return tmdbFetch(`${TMDB_CONFIG.BASE_URL}/movie/${movieId}`);
 };
